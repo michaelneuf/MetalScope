@@ -75,7 +75,7 @@ public final class MonoSphericalVideoScene: MonoSphericalMediaScene, VideoScene 
 
     public init(renderer: PlayerRenderer) {
         self.renderer = renderer
-        commandQueue = renderer.device.makeCommandQueue()
+        commandQueue = renderer.device.makeCommandQueue()!
         super.init()
         renderLoop.resume()
     }
@@ -115,9 +115,10 @@ public final class MonoSphericalVideoScene: MonoSphericalMediaScene, VideoScene 
         }
 
         do {
-            let commandBuffer = (commandQueue ?? self.commandQueue).makeCommandBuffer()
-            try renderer.render(atHostTime: time, to: texture, commandBuffer: commandBuffer)
-            commandBuffer.commit()
+            if let commandBuffer = (commandQueue ?? self.commandQueue).makeCommandBuffer() {
+                try renderer.render(atHostTime: time, to: texture, commandBuffer: commandBuffer)
+                commandBuffer.commit()
+            }
         } catch let error as CVError {
             debugPrint("[MonoSphericalVideoScene] failed to render video with error: \(error)")
         } catch {
@@ -163,7 +164,7 @@ public final class StereoSphericalVideoScene: StereoSphericalMediaScene, VideoSc
 
     public init(renderer: PlayerRenderer) {
         self.renderer = renderer
-        commandQueue = renderer.device.makeCommandQueue()
+        commandQueue = renderer.device.makeCommandQueue()!
         super.init()
         renderLoop.resume()
     }
@@ -209,11 +210,11 @@ public final class StereoSphericalVideoScene: StereoSphericalMediaScene, VideoSc
         let commandBuffer = (commandQueue ?? self.commandQueue).makeCommandBuffer()
 
         do {
-            try renderer.render(atHostTime: time, to: playerTexture, commandBuffer: commandBuffer)
+            try renderer.render(atHostTime: time, to: playerTexture, commandBuffer: commandBuffer!)
 
             func copyPlayerTexture(region: MTLRegion, to sphereTexture: MTLTexture) {
-                let blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-                blitCommandEncoder.copy(
+                let blitCommandEncoder = commandBuffer?.makeBlitCommandEncoder()
+                blitCommandEncoder?.copy(
                     from: playerTexture,
                     sourceSlice: 0,
                     sourceLevel: 0,
@@ -224,7 +225,7 @@ public final class StereoSphericalVideoScene: StereoSphericalMediaScene, VideoSc
                     destinationLevel: 0,
                     destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
                 )
-                blitCommandEncoder.endEncoding()
+                blitCommandEncoder?.endEncoding()
             }
 
             let halfHeight = playerTexture.height / 2
@@ -239,7 +240,7 @@ public final class StereoSphericalVideoScene: StereoSphericalMediaScene, VideoSc
                 copyPlayerTexture(region: rightSphereRegion, to: rightTexture)
             }
 
-            commandBuffer.commit()
+            commandBuffer?.commit()
         } catch let error as CVError {
             debugPrint("[StereoSphericalVideoScene] failed to render video with error: \(error)")
         } catch {
